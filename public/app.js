@@ -1,151 +1,214 @@
 // --- 1. IMPORT FIREBASE FUNCTIONS ---
-// These are globally available from index.html (window.firebaseAuth)
 const auth = window.firebaseAuth;
-
-// Import all the Auth functions we'll need
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- 2. GET ALL HTML ELEMENTS ---
-// App containers
+const API_URL = "http://localhost:5001/api/tasks";
+let currentUserId = null;
+
+// Main containers
 const authContainer = document.getElementById("auth-container");
 const appContainer = document.getElementById("app-container");
-// Auth forms
+const userEmailDisplay = document.getElementById("user-email-display");
+const logoutButton = document.getElementById("logout-button");
+
+// Auth forms & toggles
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
 const showLoginBtn = document.getElementById("show-login");
 const showSignupBtn = document.getElementById("show-signup");
 const authError = document.getElementById("auth-error");
-// App Header
-const logoutButton = document.getElementById("logout-button");
-const userEmailDisplay = document.getElementById("user-email-display");
-const searchBar = document.getElementById("search-bar");
-// Task Form
-const form = document.getElementById("add-task-form");
+const loginToggleText = showSignupBtn.closest(".auth-toggle");
+const signupToggleText = showLoginBtn.closest(".auth-toggle");
+
+// Main app form
+const addTaskForm = document.getElementById("add-task-form-helper");
 const titleInput = document.getElementById("task-title");
 const descriptionInput = document.getElementById("task-description");
 const priorityInput = document.getElementById("task-priority");
-// Columns & Counts
+const addTaskBtn = document.getElementById("add-task-btn");
+
+// Column lists
 const todoList = document.getElementById("todo-list");
 const inProgressList = document.getElementById("inprogress-list");
 const doneList = document.getElementById("done-list");
 const taskLists = [todoList, inProgressList, doneList];
+
+// Column counts
 const todoCount = document.getElementById("todo-count");
 const inProgressCount = document.getElementById("inprogress-count");
 const doneCount = document.getElementById("done-count");
+
+// Search
+const searchBar = document.getElementById("search-bar");
+
 // Footer
 const lastSaved = document.getElementById("last-saved");
 
-// --- 3. STATE VARIABLES ---
-const API_URL = "http://localhost:5001/api/tasks"; // Your Node.js backend
+// Drag & Drop state
 let draggedTaskId = null;
-let allTasks = []; // A local cache for searching
 
-// --- 4. AUTHENTICATION LOGIC ---
+// --- 3. HELPER FUNCTIONS ---
 
-// Listen for changes in user login state
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // User is signed in!
-    userEmailDisplay.textContent = user.email;
-
-    // Start fetching their tasks
-    fetchAllTasks();
-
-    // Show the app, hide the login screen
-    appContainer.style.display = "block";
-    authContainer.style.display = "none";
-  } else {
-    // User is signed out
-    // Show login screen, hide the app
-    appContainer.style.display = "none";
-    authContainer.style.display = "flex";
-  }
-});
-
-// Login form submit
-loginForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = document.getElementById("login-email").value;
-  const password = document.getElementById("login-password").value;
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    authError.style.display = "none";
-  } catch (error) {
-    authError.textContent = error.message;
-    authError.style.display = "block";
-  }
-});
-
-// Signup form submit
-signupForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = document.getElementById("signup-email").value;
-  const password = document.getElementById("signup-password").value;
-  try {
-    await createUserWithEmailAndPassword(auth, email, password);
-    authError.style.display = "none";
-  } catch (error) {
-    authError.textContent = error.message;
-    authError.style.display = "block";
-  }
-});
-
-// Logout button
-logoutButton.addEventListener("click", () => {
-  signOut(auth);
-});
-
-// Auth form toggling
-showSignupBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  loginForm.style.display = "none";
-  signupForm.style.display = "block";
-  authError.style.display = "none";
-});
-showLoginBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  loginForm.style.display = "block";
-  signupForm.style.display = "none";
-  authError.style.display = "none";
-});
-
-// --- 5. SECURE API HELPER ---
-// This function gets the user's token and adds it to the headers
+/**
+ * --- THIS IS THE CRITICAL FIX ---
+ * Gets a fresh auth token and returns headers for an API call.
+ */
 async function getAuthHeaders() {
-  const user = auth.currentUser;
-  if (!user) throw new Error("User not logged in.");
-
-  const token = await user.getIdToken();
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
+  if (!auth.currentUser) {
+    throw new Error("No user is logged in.");
+  }
+  try {
+    // Force refresh the token to prevent using a stale one
+    const token = await getIdToken(auth.currentUser, /*forceRefresh*/ true);
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  } catch (error) {
+    console.error("Error getting auth token:", error);
+    // If we can't get a token, force a logout
+    signOut(auth);
+    throw new Error("Auth token invalid, logging out.");
+  }
 }
 
-// --- 6. CORE APP LOGIC (FETCH) ---
+/**
+ * Updates the "Last saved" timestamp
+ */
+function updateLastSaved() {
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  lastSaved.textContent = `Last saved: ${time}`;
+}
 
-// MAIN FUNCTION: Fetch all tasks
-async function fetchAllTasks() {
-  try {
-    const headers = await getAuthHeaders();
-    const response = await fetch(API_URL, { headers }); // Pass headers to GET
+// --- 4. AUTHENTICATION LOGIC ---
+if (auth) {
+  /**
+   * This is the main listener that checks if a user is logged in or not.
+   */
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // User is logged in
+      console.log("User is logged in:", user.email);
+      currentUserId = user.uid;
+      userEmailDisplay.textContent = user.email;
 
-    if (!response.ok) {
-      if (response.status === 401) signOut(auth); // Token is bad, log out
-      throw new Error("Failed to fetch tasks");
+      // Hide auth, show app
+      authContainer.style.display = "none";
+      appContainer.style.display = "block";
+
+      // Fetch tasks once logged in
+      fetchAllTasks();
+    } else {
+      // User is logged out
+      console.log("User is logged out");
+      appContainer.style.display = "none";
+      authContainer.style.display = "flex"; // Use 'flex' to keep it centered
+      currentUserId = null;
     }
+  });
+
+  // Auth form toggling logic
+  showSignupBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    loginForm.style.display = "none";
+    loginToggleText.style.display = "none";
+    signupForm.style.display = "block";
+    signupToggleText.style.display = "block";
+    authError.style.display = "none";
+  });
+  showLoginBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    loginForm.style.display = "block";
+    loginToggleText.style.display = "block";
+    signupForm.style.display = "none";
+    signupToggleText.style.display = "none";
+    authError.style.display = "none";
+  });
+
+  /**
+   * Handle Login form submit
+   */
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle the rest
+      authError.style.display = "none";
+    } catch (error) {
+      console.error("Login failed:", error.message);
+      authError.textContent = `Error: ${error.code}`;
+      authError.style.display = "block";
+    }
+  });
+
+  /**
+   * Handle Sign Up form submit
+   */
+  signupForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("signup-email").value;
+    const password = document.getElementById("signup-password").value;
+
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle the rest
+      authError.style.display = "none";
+    } catch (error) {
+      console.error("Sign up failed:", error.message);
+      authError.textContent = `Error: ${error.code}`;
+      authError.style.display = "block";
+    }
+  });
+
+  /**
+   * Handle Logout button click
+   */
+  logoutButton.addEventListener("click", () => {
+    signOut(auth);
+    // onAuthStateChanged will handle the rest
+  });
+} else {
+  console.error("Firebase Auth is not initialized. Check firebase-init.js");
+}
+
+// --- 5. MAIN FUNCTION: FETCH ALL TASKS ---
+async function fetchAllTasks() {
+  if (!auth.currentUser) return; // Don't fetch if no user
+
+  try {
+    const headers = await getAuthHeaders(); // Get fresh headers
+    const response = await fetch(API_URL, {
+      headers: {
+        // We only need the Authorization header for a GET request
+        Authorization: headers.Authorization,
+      },
+    });
+
+    if (response.status === 401) {
+      // Token expired or invalid
+      console.warn("Auth token invalid, forcing logout.");
+      signOut(auth);
+      return;
+    }
+    if (!response.ok) throw new Error("Failed to fetch tasks");
 
     const tasks = await response.json();
-    allTasks = tasks; // Save to local cache
 
-    // Clear UI
+    // Clear all lists
     todoList.innerHTML = "";
     inProgressList.innerHTML = "";
     doneList.innerHTML = "";
+
     let todoC = 0,
       inProgressC = 0,
       doneC = 0;
 
+    // Render tasks and update counts
     tasks.forEach((task) => {
       renderTask(task);
       if (task.status === "todo") todoC++;
@@ -156,20 +219,19 @@ async function fetchAllTasks() {
     todoCount.textContent = todoC;
     inProgressCount.textContent = inProgressC;
     doneCount.textContent = doneC;
+
     updateLastSaved();
-    filterTasks(); // Re-apply search filter
   } catch (error) {
     console.error("Error fetching tasks:", error);
   }
 }
 
-// Render a single task
+// --- 6. HELPER FUNCTION: RENDER A SINGLE TASK ---
 function renderTask(task) {
   const taskCard = document.createElement("div");
   taskCard.className = `task-card priority-${task.priority}`;
-  taskCard.dataset.id = task._id; // <-- Use MongoDB's _id
+  taskCard.dataset.id = task._id;
   taskCard.draggable = true;
-
   taskCard.innerHTML = `
         <div class="task-card-header">
             <h4>${task.title}</h4>
@@ -184,44 +246,46 @@ function renderTask(task) {
             <button class="delete-btn" data-action="delete">X</button>
         </div>
     `;
-
   if (task.status === "todo") todoList.appendChild(taskCard);
   else if (task.status === "inprogress") inProgressList.appendChild(taskCard);
   else doneList.appendChild(taskCard);
 }
 
-// Handle New Task form
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+// --- 7. EVENT LISTENER: HANDLE NEW TASK FORM SUBMIT ---
+addTaskBtn.addEventListener("click", async () => {
   const title = titleInput.value.trim();
   const description = descriptionInput.value.trim();
   const priority = priorityInput.value;
-  if (!title) return;
+  if (!title || !auth.currentUser) return;
 
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(); // Get fresh headers
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: headers,
+      headers: headers, // Use the full headers object
       body: JSON.stringify({ title, description, priority }),
     });
-
     if (!response.ok) throw new Error("Failed to create task");
-
     titleInput.value = "";
     descriptionInput.value = "";
     priorityInput.value = "low";
     priorityInput.dispatchEvent(new Event("change"));
-
-    fetchAllTasks(); // Re-fetch to get new task
+    fetchAllTasks();
   } catch (error) {
     console.error("Error creating task:", error);
   }
 });
+// This is the hidden form, we just prevent its default submit
+addTaskForm.addEventListener("submit", (e) => e.preventDefault());
 
-// Handle Button Clicks (Move & Delete)
-document.querySelector(".content-container").addEventListener("click", async (e) => {
-  if (!e.target.matches(".delete-btn, .move-btn")) return;
+// --- 8. EVENT LISTENER: HANDLE BUTTON CLICKS (MOVE & DELETE) ---
+// Use event delegation on the whole app container
+appContainer.addEventListener("click", async (e) => {
+  // Check if the click was on a button we care about
+  if (!e.target.matches(".delete-btn") && !e.target.matches(".move-btn")) {
+    return;
+  }
+  if (!auth.currentUser) return; // Not logged in
 
   const button = e.target;
   const action = button.dataset.action;
@@ -229,31 +293,50 @@ document.querySelector(".content-container").addEventListener("click", async (e)
   const taskId = taskCard.dataset.id;
 
   try {
-    const headers = await getAuthHeaders();
-
     if (action === "delete") {
-      await fetch(`${API_URL}/${taskId}`, { method: "DELETE", headers });
+      const headers = await getAuthHeaders(); // Get fresh headers
+      await fetch(`${API_URL}/${taskId}`, {
+        method: "DELETE",
+        headers: { Authorization: headers.Authorization },
+      });
     } else {
       // This is a 'move' action
       const newStatus = action;
+      const headers = await getAuthHeaders(); // Get fresh headers
       await fetch(`${API_URL}/${taskId}`, {
         method: "PUT",
-        headers: headers,
+        headers: headers, // Use the full headers object
         body: JSON.stringify({ status: newStatus }),
       });
     }
-    fetchAllTasks(); // Re-fetch to update UI
+    fetchAllTasks(); // Re-fetch to update counts
   } catch (error) {
-    console.error("Error updating task:", error);
+    console.error(`Error with action ${action}:`, error);
   }
 });
 
-// --- 7. DRAG & DROP LOGIC ---
+// --- 9. EVENT LISTENER: HANDLE SEARCH ---
+searchBar.addEventListener("input", (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+
+  document.querySelectorAll(".task-card").forEach((card) => {
+    const title = card.querySelector("h4").textContent.toLowerCase();
+    const description = card.querySelector("p").textContent.toLowerCase();
+
+    if (title.includes(searchTerm) || description.includes(searchTerm)) {
+      card.style.display = "flex"; // Use 'flex' to match our card styles
+    } else {
+      card.style.display = "none";
+    }
+  });
+});
+
+// --- 10. DRAG AND DROP EVENT LISTENERS ---
 taskLists.forEach((list) => {
   list.addEventListener("dragstart", (e) => {
     if (e.target.matches(".task-card")) {
       draggedTaskId = e.target.dataset.id;
-      e.target.classList.add("dragging");
+      setTimeout(() => e.target.classList.add("dragging"), 0);
     }
   });
   list.addEventListener("dragend", (e) => {
@@ -263,7 +346,6 @@ taskLists.forEach((list) => {
     }
   });
 });
-
 taskLists.forEach((column) => {
   column.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -272,83 +354,39 @@ taskLists.forEach((column) => {
   column.addEventListener("dragleave", () => {
     column.classList.remove("drag-over");
   });
-
   column.addEventListener("drop", async (e) => {
     e.preventDefault();
     column.classList.remove("drag-over");
-    if (!draggedTaskId) return;
+    if (!draggedTaskId || !auth.currentUser) return;
 
     const newStatus = column.dataset.status;
     const draggedCard = document.querySelector(`[data-id="${draggedTaskId}"]`);
 
-    // Check if the status is actually changing
-    if (draggedCard.closest(".tasks-list").dataset.status === newStatus) {
-      return;
-    }
-
-    // Optimistic UI update: move the card immediately
+    // Optimistic UI Update: move the card immediately
     column.appendChild(draggedCard);
-    // Manually update counts for a snappier feel
-    updateTaskCounts();
 
     try {
-      const headers = await getAuthHeaders();
+      const headers = await getAuthHeaders(); // Get fresh headers
+      // Update the backend
       await fetch(`${API_URL}/${draggedTaskId}`, {
         method: "PUT",
-        headers: headers,
+        headers: headers, // Use the full headers object
         body: JSON.stringify({ status: newStatus }),
       });
-      // Final, authoritative update from server
+      // Re-fetch all tasks to ensure counts are correct
       fetchAllTasks();
     } catch (error) {
       console.error("Error updating task status:", error);
-      fetchAllTasks(); // Revert on error
+      // If error, re-fetch to revert the change
+      fetchAllTasks();
     }
   });
 });
 
-// --- 8. SEARCH & HELPERS ---
-searchBar.addEventListener("input", filterTasks);
-
-function filterTasks() {
-  const searchTerm = searchBar.value.toLowerCase();
-  // Use the local cache `allTasks` to decide visibility
-  allTasks.forEach((task) => {
-    const card = document.querySelector(`[data-id="${task._id}"]`);
-    if (!card) return;
-
-    const title = task.title.toLowerCase();
-    const description = (task.description || "").toLowerCase();
-
-    if (title.includes(searchTerm) || description.includes(searchTerm)) {
-      card.style.display = "flex";
-    } else {
-      card.style.display = "none";
-    }
-  });
-}
-
-// Helper to manually update counts (for snappy drag-drop)
-function updateTaskCounts() {
-  todoCount.textContent = todoList.childElementCount;
-  inProgressCount.textContent = inProgressList.childElementCount;
-  doneCount.textContent = doneList.childElementCount;
-}
-
-// Style the priority dropdown
+// --- 11. STYLE THE PRIORITY DROPDOWN ON CHANGE ---
 priorityInput.addEventListener("change", (e) => {
+  // Set class on the select box itself for styling
   e.target.className = `select-${e.target.value}`;
 });
-
-// Update the "Last Saved" timestamp
-function updateLastSaved() {
-  const now = new Date();
-  // Using German locale settings since we're in Berlin.
-  const time = now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-  lastSaved.textContent = `Last saved: ${time} CET`;
-}
-
-// --- 9. INITIALIZE THE APP ---
+// Also run it once on load to set the default color
 priorityInput.dispatchEvent(new Event("change"));
-// We don't call fetchAllTasks() here,
-// onAuthStateChanged() will do it when the user logs in.
