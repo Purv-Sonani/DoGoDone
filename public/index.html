@@ -5,87 +5,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DoGoDone - Your Task Board</title>
+    <!-- Your existing style.css file (which includes the auth styles) -->
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <header class="main-header">
-        <div class="header-left">
-            <div class="logo">DGD</div>
-            <div class="header-title">
-                <h1>My Project Board</h1>
-                <p>A focused Kanban for planning & delivering work</p>
-            </div>
+    <!-- 
+      SECTION 1: THE AUTHENTICATION SCREEN
+      This is shown by default. JavaScript will hide it after login.
+    -->
+    <div id="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">DoGoDone</h1>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <h3>Log In</h3>
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Log In</button>
+            </form>
+
+            <!-- Sign Up Form (hidden by default) -->
+            <form id="signup-form" class="auth-form" style="display: none;">
+                <h3>Sign Up</h3>
+                <input type="email" id="signup-email" placeholder="Email" required>
+                <input type="password" id="signup-password" placeholder="Password" required>
+                <button type="submit">Sign Up</button>
+            </form>
+
+            <p id="auth-error"></p> <!-- For showing login errors -->
+
+            <!-- Toggles between the two forms -->
+            <p class="auth-toggle">
+                Need an account? <a href="#" id="show-signup">Sign Up</a>
+            </p>
+            <p class="auth-toggle" style="display: none;">
+                Already have an account? <a href="#" id="show-login">Log In</a>
+            </p>
         </div>
-        <div class="header-right">
-            <input type="search" id="search-bar" placeholder="Search tasks...">
-        </div>
-    </header>
+    </div>
 
-    <main class="content-container">
 
-        <!-- New Task Form -->
-        <form id="add-task-form" class="add-task-container">
-            <div class="form-group form-group-title">
-                <label for="task-title">Title</label>
-                <input type="text" id="task-title" placeholder="e.g. Implement authentication" required>
-            </div>
+    <!-- 
+      SECTION 2: THE MAIN APP
+      This is hidden by default (style="display: none;"). 
+      JavaScript will show it after login.
+    -->
+    <div id="app-container" style="display: none;">
 
-            <div class="form-group form-group-description">
-                <label for="task-description">Description</label>
-                <input type="text" id="task-description" placeholder="A brief summary, acceptance criteria, or links...">
-                <!-- <textarea id="task-description" placeholder="A brief summary, acceptance criteria, or links..."></textarea> -->
-            </div>
-
-            <div class="form-group form-group-priority">
-                <label for="task-priority">Priority</label>
-                <select id="task-priority">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                </select>
-            </div>
-
-            <button type="submit" class="add-task-btn">Add Task</button>
-        </form>
-
-        <!-- Board Columns -->
-        <div class="board-container">
-            <!-- Column for "To Do" tasks -->
-            <div class="tasks-column" id="todo-column">
-                <h2>To Do <span class="task-count" id="todo-count">0</span></h2>
-                <div class="tasks-list" id="todo-list" data-status="todo">
-                    <!-- Tasks will be added here by JS -->
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <div class="logo">DGD</div>
+                <div class="header-title">
+                    <h1>My Project Board</h1>
+                    <p>A focused Kanban for planning & delivering work</p>
                 </div>
             </div>
+            <div class="header-right">
+                <input type="search" id="search-bar" placeholder="Search tasks...">
 
-            <!-- Column for "In Progress" tasks -->
-            <div class="tasks-column" id="inprogress-column">
-                <h2>In Progress <span class="task-count" id="inprogress-count">0</span></h2>
-                <div class="tasks-list" id="inprogress-list" data-status="inprogress">
-                    <!-- Tasks will be added here by JS -->
-                </div>
+                <!-- New User Info & Logout Button -->
+                <span id="user-email-display"></span>
+                <button id="logout-button">Log Out</button>
             </div>
+        </header>
 
-            <!-- Column for "Done" tasks -->
-            <div class="tasks-column" id="done-column">
-                <h2>Done <span class="task-count" id="done-count">0</span></h2>
-                <div class="tasks-list" id="done-list" data-status="done">
-                    <!-- Tasks will be added here by JS -->
+        <!-- Main Content (Form + Board) -->
+        <div class="content-container">
+            <!-- Add Task Form -->
+            <div class="add-task-container">
+                <div class="form-group form-group-title">
+                    <label for="task-title">Title</label>
+                    <input type="text" id="task-title" placeholder="e.g., Implement authentication">
+                </div>
+                <div class="form-group form-group-description">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description" placeholder="A brief summary, acceptance criteria, or links..."></textarea>
+                </div>
+                <div class="form-group form-group-priority">
+                    <label for="task-priority">Priority</label>
+                    <select id="task-priority">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <button type="submit" id="add-task-btn" class="add-task-btn">Add Task</button>
+            </div>
+            <form id="add-task-form" style="display: none;"></form> <!-- Hidden helper form -->
+
+            <!-- Kanban Board -->
+            <div class="board-container">
+                <div class="tasks-column">
+                    <h2>To Do <span id="todo-count" class="task-count">0</span></h2>
+                    <div class="tasks-list" id="todo-list" data-status="todo"></div>
+                </div>
+                <div class="tasks-column">
+                    <h2>In Progress <span id="inprogress-count" class="task-count">0</span></h2>
+                    <div class="tasks-list" id="inprogress-list" data-status="inprogress"></div>
+                </div>
+                <div class="tasks-column">
+                    <h2>Done <span id="done-count" class="task-count">0</span></h2>
+                    <div class="tasks-list" id="done-list" data-status="done"></div>
                 </div>
             </div>
         </div>
 
-    </main>
+        <!-- Footer -->
+        <footer class="main-footer">
+            <span>Made with DoGoDone</span>
+            <span id="last-saved"></span>
+        </footer>
 
-    <footer class="main-footer">
-        <p>Made with DoGoDone</p>
-        <p id="last-saved">Last saved: ...</p>
-    </footer>
+    </div> <!-- End of #app-container -->
+    
 
-    <!-- Make sure this is at the end of <body> -->
-    <script src="app.js"></script>
+    <script src="firebase_init.js" type="module"></script>
+    <script src="app.js" type="module"></script>
 </body>
 
 </html>

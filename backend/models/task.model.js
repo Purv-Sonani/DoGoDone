@@ -23,6 +23,12 @@ const taskSchema = new Schema(
       enum: ["low", "medium", "high"],
       default: "low",
     },
+    // This field links the task to a specific Firebase User ID
+    ownerId: {
+      type: String,
+      required: true,
+      index: true, // Makes lookups by ownerId faster
+    },
   },
   {
     timestamps: true,

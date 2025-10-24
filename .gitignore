@@ -6,3 +6,5 @@ npm-debug.log*
 
 # Environment variables
 .env
+
+/backend/serviceAccountKey.json

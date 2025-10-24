@@ -1,73 +1,87 @@
 import express from "express";
-import Task from "../models/task.model.js"; // Import our Task model
+import Task from "../models/task.model.js";
+import authMiddleware from "../middlewares/authMiddleware.js"; // <-- 1. IMPORT MIDDLEWARE
 
 const router = express.Router();
 
-// --- 1. GET ALL TASKS ---
-// Handles GET requests to /api/tasks/
+// --- 2. PROTECT ALL ROUTES ---
+// This tells Express to use our middleware on EVERY route in this file.
+// Any request to /api/tasks/* will be checked for a valid token first.
+router.use(authMiddleware);
+
+// --- 3. UPDATE ROUTES TO BE MULTI-TENANT ---
+
+// --- GET ALL TASKS (for the logged-in user) ---
 router.get("/", async (req, res) => {
   try {
-    const tasks = await Task.find(); // Find all tasks in the database
-    res.json(tasks); // Send them back as JSON
+    // Find all tasks that match the user's ID
+    const tasks = await Task.find({ ownerId: req.userId });
+    res.json(tasks);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// --- 2. CREATE A NEW TASK ---
-// Handles POST requests to /api/tasks/
+// --- CREATE A NEW TASK (for the logged-in user) ---
 router.post("/", async (req, res) => {
-  // Get title, description, AND PRIORITY from the request body
-  const { title, description, priority } = req.body; // <-- UPDATED THIS LINE
+  const { title, description, priority } = req.body;
 
-  // Create a new Task object
   const newTask = new Task({
     title: title,
     description: description,
-    priority: priority, // <-- ADDED THIS LINE
-    // 'status' will default to 'todo' as defined in our model
+    priority: priority,
+    ownerId: req.userId, // <-- 4. LINK THE TASK TO THE USER
   });
 
   try {
-    const savedTask = await newTask.save(); // Save it to the database
-    res.status(201).json(savedTask); // Send back the new task
-  } catch (err) {
-    res.status(400).json({ message: err.message }); // 400 = bad request
-  }
-});
-
-// --- 3. UPDATE A TASK (e.g., change status) ---
-// Handles PUT requests to /api/tasks/some_id
-router.put("/:id", async (req, res) => {
-  try {
-    const taskId = req.params.id;
-    const updates = req.body; // e.g., { status: 'inprogress' }
-
-    const updatedTask = await Task.findByIdAndUpdate(taskId, updates, {
-      new: true, // This option returns the modified document
-    });
-
-    if (!updatedTask) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    res.json(updatedTask); // Send back the updated task
+    const savedTask = await newTask.save();
+    res.status(201).json(savedTask);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// --- 4. DELETE A TASK ---
-// Handles DELETE requests to /api/tasks/some_id
+// --- UPDATE A TASK (and check ownership) ---
+router.put("/:id", async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const updates = req.body; // e.g., { status: 'inprogress' }
+
+    // 5. CHECK OWNERSHIP
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    if (task.ownerId !== req.userId) {
+      return res.status(403).json({ message: "Forbidden: You do not own this task" });
+    }
+    // ---
+
+    const updatedTask = await Task.findByIdAndUpdate(taskId, updates, {
+      new: true, // This option returns the modified document
+    });
+    res.json(updatedTask);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// --- DELETE A TASK (and check ownership) ---
 router.delete("/:id", async (req, res) => {
   try {
     const taskId = req.params.id;
-    const deletedTask = await Task.findByIdAndDelete(taskId);
 
-    if (!deletedTask) {
+    // 5. CHECK OWNERSHIP
+    const task = await Task.findById(taskId);
+    if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
+    if (task.ownerId !== req.userId) {
+      return res.status(403).json({ message: "Forbidden: You do not own this task" });
+    }
+    // ---
 
+    await Task.findByIdAndDelete(taskId);
     res.json({ message: "Task deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
