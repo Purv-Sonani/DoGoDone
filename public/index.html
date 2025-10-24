@@ -4,15 +4,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DoGoDone</title>
+    <title>DoGoDone - Your Task Board</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <h1>DoGoDone</h1>
 
-    <div id="board-container">
-    </div>
+    <header>
+        <h1>DoGoDone</h1>
+    </header>
+
+    <main class="board-container">
+
+        <div class="form-container">
+            <h2>Add New Task</h2>
+            <form id="add-task-form">
+                <div class="form-group">
+                    <label for="task-title">Title</label>
+                    <input type="text" id="task-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description"></textarea>
+                </div>
+                <button type="submit">Add Task</button>
+            </form>
+        </div>
+
+        <div class="tasks-column" id="todo-column">
+            <h2>To Do</h2>
+            <div class="tasks-list" id="todo-list" data-status="todo">
+            </div>
+        </div>
+
+        <div class="tasks-column" id="inprogress-column">
+            <h2>In Progress</h2>
+            <div class="tasks-list" id="inprogress-list" data-status="inprogress">
+            </div>
+        </div>
+
+        <div class="tasks-column" id="done-column">
+            <h2>Done</h2>
+            <div class="tasks-list" id="done-list" data-status="done">
+            </div>
+        </div>
+
+    </main>
 
     <script src="app.js"></script>
 </body>
