@@ -17,6 +17,12 @@ const taskSchema = new Schema(
       enum: ["todo", "inprogress", "done"],
       default: "todo",
     },
+    priority: {
+      type: String,
+      required: true,
+      enum: ["low", "medium", "high"],
+      default: "low",
+    },
   },
   {
     timestamps: true,

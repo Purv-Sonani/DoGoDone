@@ -10,47 +10,81 @@
 
 <body>
 
-    <header>
-        <h1>DoGoDone</h1>
+    <header class="main-header">
+        <div class="header-left">
+            <div class="logo">DGD</div>
+            <div class="header-title">
+                <h1>My Project Board</h1>
+                <p>A focused Kanban for planning & delivering work</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <input type="search" id="search-bar" placeholder="Search tasks...">
+        </div>
     </header>
 
-    <main class="board-container">
+    <main class="content-container">
 
-        <div class="form-container">
-            <h2>Add New Task</h2>
-            <form id="add-task-form">
-                <div class="form-group">
-                    <label for="task-title">Title</label>
-                    <input type="text" id="task-title" required>
-                </div>
-                <div class="form-group">
-                    <label for="task-description">Description</label>
-                    <textarea id="task-description"></textarea>
-                </div>
-                <button type="submit">Add Task</button>
-            </form>
-        </div>
-
-        <div class="tasks-column" id="todo-column">
-            <h2>To Do</h2>
-            <div class="tasks-list" id="todo-list" data-status="todo">
+        <!-- New Task Form -->
+        <form id="add-task-form" class="add-task-container">
+            <div class="form-group form-group-title">
+                <label for="task-title">Title</label>
+                <input type="text" id="task-title" placeholder="e.g. Implement authentication" required>
             </div>
-        </div>
 
-        <div class="tasks-column" id="inprogress-column">
-            <h2>In Progress</h2>
-            <div class="tasks-list" id="inprogress-list" data-status="inprogress">
+            <div class="form-group form-group-description">
+                <label for="task-description">Description</label>
+                <input type="text" id="task-description" placeholder="A brief summary, acceptance criteria, or links...">
+                <!-- <textarea id="task-description" placeholder="A brief summary, acceptance criteria, or links..."></textarea> -->
             </div>
-        </div>
 
-        <div class="tasks-column" id="done-column">
-            <h2>Done</h2>
-            <div class="tasks-list" id="done-list" data-status="done">
+            <div class="form-group form-group-priority">
+                <label for="task-priority">Priority</label>
+                <select id="task-priority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+
+            <button type="submit" class="add-task-btn">Add Task</button>
+        </form>
+
+        <!-- Board Columns -->
+        <div class="board-container">
+            <!-- Column for "To Do" tasks -->
+            <div class="tasks-column" id="todo-column">
+                <h2>To Do <span class="task-count" id="todo-count">0</span></h2>
+                <div class="tasks-list" id="todo-list" data-status="todo">
+                    <!-- Tasks will be added here by JS -->
+                </div>
+            </div>
+
+            <!-- Column for "In Progress" tasks -->
+            <div class="tasks-column" id="inprogress-column">
+                <h2>In Progress <span class="task-count" id="inprogress-count">0</span></h2>
+                <div class="tasks-list" id="inprogress-list" data-status="inprogress">
+                    <!-- Tasks will be added here by JS -->
+                </div>
+            </div>
+
+            <!-- Column for "Done" tasks -->
+            <div class="tasks-column" id="done-column">
+                <h2>Done <span class="task-count" id="done-count">0</span></h2>
+                <div class="tasks-list" id="done-list" data-status="done">
+                    <!-- Tasks will be added here by JS -->
+                </div>
             </div>
         </div>
 
     </main>
 
+    <footer class="main-footer">
+        <p>Made with DoGoDone</p>
+        <p id="last-saved">Last saved: ...</p>
+    </footer>
+
+    <!-- Make sure this is at the end of <body> -->
     <script src="app.js"></script>
 </body>
 

@@ -17,15 +17,15 @@ router.get("/", async (req, res) => {
 // --- 2. CREATE A NEW TASK ---
 // Handles POST requests to /api/tasks/
 router.post("/", async (req, res) => {
-  // Get the title and description from the request body
-  console.log("--- POST /api/tasks endpoint was hit! ---");
-  const { title, description } = req.body;
+  // Get title, description, AND PRIORITY from the request body
+  const { title, description, priority } = req.body; // <-- UPDATED THIS LINE
 
   // Create a new Task object
   const newTask = new Task({
     title: title,
     description: description,
-    // 'status' will default to 'todo' as defined in model
+    priority: priority, // <-- ADDED THIS LINE
+    // 'status' will default to 'todo' as defined in our model
   });
 
   try {
