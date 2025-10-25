@@ -7,7 +7,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const auth = window.firebaseAuth;
 
   // --- 2. GET ALL HTML ELEMENTS ---
-  const API_URL = "http://localhost:5001/api/tasks";
+  const API_URL = "/api/tasks";
   let currentUserId = null;
 
   // Main containers
