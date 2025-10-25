@@ -6,66 +6,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DoGoDone - Your Task Board</title>
     <link rel="stylesheet" href="style.css">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="images/favicon_io/site.webmanifest">
+    <link rel="shortcut icon" href="images/favicon_io/favicon.ico">
 </head>
 
 <body>
 
     <!-- 
-      This is the login/signup screen.
-      It's hidden by app.js when the user logs in.
+      This is the Login/Sign Up container. 
+      It's hidden by app.js when the user is logged in.
     -->
     <div id="auth-container">
         <div class="auth-box">
             <h1 class="auth-title">DoGoDone</h1>
 
             <!-- Login Form -->
-            <form class="auth-form" id="login-form">
+            <form id="login-form" class="auth-form">
                 <h3>Log In</h3>
                 <input type="email" id="login-email" placeholder="Email" required>
                 <input type="password" id="login-password" placeholder="Password" required>
                 <button type="submit">Log In</button>
-                <p id="auth-error" style="display: none;"></p>
-                <p class="auth-toggle">
-                    Need an account? <a href="#" id="show-signup">Sign Up</a>
-                </p>
+                <div id="auth-error" style="display: none;"></div>
             </form>
 
             <!-- Sign Up Form -->
-            <form class="auth-form" id="signup-form" style="display: none;">
+            <form id="signup-form" class="auth-form" style="display: none;">
                 <h3>Sign Up</h3>
                 <input type="email" id="signup-email" placeholder="Email" required>
-                <input type="password" id="signup-password" placeholder="Password" required>
+                <input type="password" id="signup-password" placeholder="Password (min. 6 chars)" required>
                 <button type="submit">Sign Up</button>
-                <p class="auth-toggle">
-                    Already have an account? <a href="#" id="show-login">Log In</a>
-                </p>
             </form>
+
+            <p class="auth-toggle">
+                Need an account? <a href="#" id="show-signup">Sign Up</a>
+            </p>
+            <p class="auth-toggle" style="display: none;">
+                Already have an account? <a href="#" id="show-login">Log In</a>
+            </p>
         </div>
     </div>
 
-
     <!-- 
-      This is the main application.
-      It's hidden by default and shown by app.js after login.
+      This is the main application. 
+      It's hidden by default and shown by app.js.
     -->
     <div id="app-container" style="display: none;">
         <header class="main-header">
             <div class="header-left">
                 <div class="logo">DGD</div>
                 <div class="header-title">
-                    <h1>My Project Board</h1>
+                    <h1>DoGoDone: My Project Board</h1>
                     <p>A focused Kanban for planning & delivering work</p>
                 </div>
             </div>
             <div class="header-right">
                 <input type="search" id="search-bar" placeholder="Search tasks...">
                 <span id="user-email-display"></span>
-                <button id="logout-button">Log Out</button>
+                <button id="logout-button">Logout</button>
             </div>
         </header>
 
-        <main class="content-container">
-            <!-- This is the hidden form helper for the 'add task' row -->
+        <div class="content-container">
+            <!-- This is the "helper" form tag, the real submit is handled by the button -->
             <form id="add-task-form-helper">
                 <div class="add-task-container">
                     <div class="form-group form-group-title">
@@ -76,58 +82,63 @@
                         <label for="task-description">Description</label>
                         <input type="text" id="task-description" placeholder="A brief summary, acceptance criteria, or links..."></input>
                     </div>
-
-                    <!-- 
-                        THIS IS THE ELEMENT THAT WAS MISSING 
-                        The id="task-priority" MUST match app.js
-                    -->
                     <div class="form-group form-group-priority">
                         <label for="task-priority">Priority</label>
+
+                        <!-- 
+                          THIS IS THE MISSING ELEMENT. 
+                          Your file must have this exact <select> tag with id="task-priority"
+                        -->
                         <select id="task-priority">
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>
                         </select>
-                    </div>
 
+                    </div>
                     <button type="button" id="add-task-btn" class="add-task-btn">Add Task</button>
                 </div>
             </form>
 
             <div class="board-container">
-                <div class="tasks-column">
+                <div class="tasks-column" id="todo-column">
                     <h2>To Do <span id="todo-count" class="task-count">0</span></h2>
                     <div class="tasks-list" id="todo-list" data-status="todo">
                         <!-- Tasks will be added here by JS -->
                     </div>
                 </div>
-                <div class="tasks-column">
+                <div class="tasks-column" id="inprogress-column">
                     <h2>In Progress <span id="inprogress-count" class="task-count">0</span></h2>
                     <div class="tasks-list" id="inprogress-list" data-status="inprogress">
                         <!-- Tasks will be added here by JS -->
                     </div>
                 </div>
-                <div class="tasks-column">
+                <div class="tasks-column" id="done-column">
                     <h2>Done <span id="done-count" class="task-count">0</span></h2>
                     <div class="tasks-list" id="done-list" data-status="done">
                         <!-- Tasks will be added here by JS -->
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
 
         <footer class="main-footer">
-            <span>Made with DoGoDone</span>
-            <span id="last-saved"></span>
+            <div class="footer-left">Made with DoGoDone</div>
+            <div class="footer-right" id="last-saved">Last saved: --:-- --</div>
         </footer>
     </div>
 
-    <!-- Firebase SDKs -->
+
+    <!-- 
+      Load Firebase Config & Init first
+    -->
     <script src="firebase_init.js" type="module"></script>
 
-    <!-- Your main app logic -->
+    <!-- 
+      Load your main app logic (must be type="module")
+      This file depends on firebase-init.js
+    -->
     <script src="app.js" type="module"></script>
-
 </body>
 
 </html>

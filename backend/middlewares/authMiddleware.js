@@ -1,46 +1,54 @@
-import admin from "firebase-admin";
-import fs from "fs";
+import admin from 'firebase-admin';
 
-// This function assumes 'serviceAccountKey.json' is in the SAME folder (backend/)
-// You must get this file from your Firebase Project Settings > Service accounts
-const serviceAccountPath = "./serviceAccountKey.json";
+// Make sure you have the 'serviceAccountKey.json' in your /backend folder
+import serviceAccount from '../serviceAccountKey.json' with { type: "json" };
 
-if (fs.existsSync(serviceAccountPath)) {
-  const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath));
-
-  // Initialize the Firebase Admin SDK
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+// Safer Firebase Admin initialization
+// This ensures we always have a reference to the app
+let firebaseApp;
+if (!admin.apps.length) {
+    firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
 } else {
-  console.error("!!! FATAL ERROR: 'serviceAccountKey.json' not found. !!!");
-  console.error("Please download it from your Firebase project settings and place it in the 'backend' folder.");
-  // We don't exit the process here, but auth will fail.
+    firebaseApp = admin.app(); // Get the default app if already initialized
 }
 
-// This is our Express middleware function
+/**
+ * This middleware verifies the Firebase auth token.
+ */
 const authMiddleware = async (req, res, next) => {
-  // Get the token from the "Authorization" header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).send({ message: "Unauthorized: No token provided." });
-  }
+    const header = req.headers.authorization;
 
-  const idToken = authHeader.split("Bearer ")[1];
+    if (!header || !header.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'No token, authorization denied' });
+    }
 
-  try {
-    // Verify the token with Firebase
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const token = header.split(' ')[1];
 
-    // Add the user's ID to the request object
-    req.userId = decodedToken.uid;
+    try {
+        const decodedToken = await admin.auth(firebaseApp).verifyIdToken(token);
+        req.userId = decodedToken.uid; // Add user ID to the request object
+        next();
+    } catch (error) {
+        // --- THIS IS THE NEW, SAFER LOGGING ---
+        console.error("--- AUTHENTICATION FAILED (INSIDE CATCH BLOCK) ---");
+        console.error("Token from frontend was REJECTED.");
+        console.error("This almost certainly means your backend 'serviceAccountKey.json' does not match your frontend 'firebaseConfig'.");
+        
+        // Safely get the Project ID
+        try {
+            console.error("Backend Project ID (from service key):", serviceAccount.project_id);
+        } catch (e) {
+            console.error("Could not read 'project_id' from serviceAccountKey.json.");
+        }
+        
+        console.error("Full Error Details:", error.code, error.message);
+        // --- END OF NEW LOGGING ---
 
-    // Continue to the next function (our API route)
-    next();
-  } catch (error) {
-    console.error("Error verifying token:", error.message);
-    return res.status(401).send({ message: "Unauthorized: Invalid token." });
-  }
+        res.status(400).json({ message: 'Token is not valid. See backend console for details.' });
+    }
 };
 
 export default authMiddleware;
+

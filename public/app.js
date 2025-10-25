@@ -26,28 +26,11 @@ window.addEventListener("DOMContentLoaded", () => {
   const signupToggleText = showLoginBtn.closest(".auth-toggle");
 
   // Main app form
-  const addTaskForm = document.getElementById("add-task-form-helper");
-  const titleInput = document.getElementById("task-title");
-  const descriptionInput = document.getElementById("task-description");
-  const priorityInput = document.getElementById("task-priority");
-  const addTaskBtn = document.getElementById("add-task-btn");
-
-  // Column lists
-  const todoList = document.getElementById("todo-list");
-  const inProgressList = document.getElementById("inprogress-list");
-  const doneList = document.getElementById("done-list");
-  const taskLists = [todoList, inProgressList, doneList];
-
-  // Column counts
-  const todoCount = document.getElementById("todo-count");
-  const inProgressCount = document.getElementById("inprogress-count");
-  const doneCount = document.getElementById("done-count");
-
-  // Search
-  const searchBar = document.getElementById("search-bar");
-
-  // Footer
-  const lastSaved = document.getElementById("last-saved");
+  // We get these *inside* the init function
+  let addTaskForm, titleInput, descriptionInput, priorityInput, addTaskBtn;
+  let todoList, inProgressList, doneList, taskLists;
+  let todoCount, inProgressCount, doneCount;
+  let searchBar, lastSaved;
 
   // Drag & Drop state
   let draggedTaskId = null;
@@ -79,9 +62,12 @@ window.addEventListener("DOMContentLoaded", () => {
    * Updates the "Last saved" timestamp
    */
   function updateLastSaved() {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    lastSaved.textContent = `Last saved: ${time}`;
+    // Only run if lastSaved has been found
+    if (lastSaved) {
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      lastSaved.textContent = `Last saved: ${time}`;
+    }
   }
 
   /**
@@ -90,6 +76,10 @@ window.addEventListener("DOMContentLoaded", () => {
   function renderTask(task) {
     const taskCard = document.createElement("div");
     taskCard.className = `task-card priority-${task.priority}`;
+    // Ensure the data-id is always set
+    if (!task._id) {
+      console.error("Task is missing _id:", task); // Debugging
+    }
     taskCard.dataset.id = task._id;
     taskCard.draggable = true;
     taskCard.innerHTML = `
@@ -141,6 +131,10 @@ window.addEventListener("DOMContentLoaded", () => {
         doneC = 0;
 
       tasks.forEach((task) => {
+        // Add a check inside renderTask if needed
+        if (!task._id) {
+          console.error("Task fetched from API is missing _id:", task);
+        }
         renderTask(task);
         if (task.status === "todo") todoC++;
         else if (task.status === "inprogress") inProgressC++;
@@ -172,11 +166,7 @@ window.addEventListener("DOMContentLoaded", () => {
         authContainer.style.display = "none";
         appContainer.style.display = "block";
 
-        // --- THIS IS THE FIX ---
-        // Now that the user is logged in and the app is visible,
-        // we can safely add all our app-related event listeners.
-        initialize_app_listeners();
-        // --- END OF FIX ---
+        initializeAppLogic(); // Initialize listeners only after login
 
         fetchAllTasks();
       } else {
@@ -185,6 +175,7 @@ window.addEventListener("DOMContentLoaded", () => {
         appContainer.style.display = "none";
         authContainer.style.display = "flex";
         currentUserId = null;
+        // Remove listeners if needed, though usually just hiding the app is enough
       }
     });
 
@@ -242,8 +233,26 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- 5. FUNCTION TO SET UP ALL APP EVENT LISTENERS ---
-    // This function is now called only *after* login is successful
-    function initialize_app_listeners() {
+    function initializeAppLogic() {
+      // Get app elements *after* DOM is ready and user is logged in
+      addTaskForm = document.getElementById("add-task-form-helper");
+      titleInput = document.getElementById("task-title");
+      descriptionInput = document.getElementById("task-description");
+      priorityInput = document.getElementById("task-priority");
+      addTaskBtn = document.getElementById("add-task-btn");
+
+      todoList = document.getElementById("todo-list");
+      inProgressList = document.getElementById("inprogress-list");
+      doneList = document.getElementById("done-list");
+      taskLists = [todoList, inProgressList, doneList];
+
+      todoCount = document.getElementById("todo-count");
+      inProgressCount = document.getElementById("inprogress-count");
+      doneCount = document.getElementById("done-count");
+
+      searchBar = document.getElementById("search-bar");
+      lastSaved = document.getElementById("last-saved");
+
       // --- 7. EVENT LISTENER: HANDLE NEW TASK FORM SUBMIT ---
       addTaskBtn.addEventListener("click", async () => {
         const title = titleInput.value.trim();
@@ -280,12 +289,21 @@ window.addEventListener("DOMContentLoaded", () => {
         const button = e.target;
         const action = button.dataset.action;
         const taskCard = button.closest(".task-card");
-        const taskId = taskCard.dataset.id;
+        const taskId = taskCard?.dataset.id; // Use optional chaining just in case
+
+        // --- DEBUGGING ---
+        console.log("Button clicked!", { action, taskId });
+        if (!taskId) {
+          console.error("Could not find taskId from taskCard:", taskCard);
+          return; // Stop if taskId is null or undefined
+        }
+        // --- END DEBUGGING ---
 
         try {
           if (action === "delete") {
             const headers = await getAuthHeaders();
             await fetch(`${API_URL}/${taskId}`, {
+              // Use taskId here
               method: "DELETE",
               headers: { Authorization: headers.Authorization },
             });
@@ -293,6 +311,7 @@ window.addEventListener("DOMContentLoaded", () => {
             const newStatus = action;
             const headers = await getAuthHeaders();
             await fetch(`${API_URL}/${taskId}`, {
+              // Use taskId here
               method: "PUT",
               headers: headers,
               body: JSON.stringify({ status: newStatus }),
@@ -309,12 +328,14 @@ window.addEventListener("DOMContentLoaded", () => {
         list.addEventListener("dragstart", (e) => {
           if (e.target.matches(".task-card")) {
             draggedTaskId = e.target.dataset.id;
+            console.log("Drag Start - Task ID:", draggedTaskId); // Debugging
             setTimeout(() => e.target.classList.add("dragging"), 0);
           }
         });
         list.addEventListener("dragend", (e) => {
           if (e.target.matches(".task-card")) {
-            draggedTaskId = null;
+            console.log("Drag End - Task ID:", draggedTaskId); // Debugging
+            // draggedTaskId = null; // Let's keep it until drop for debugging
             e.target.classList.remove("dragging");
           }
         });
@@ -330,16 +351,33 @@ window.addEventListener("DOMContentLoaded", () => {
         column.addEventListener("drop", async (e) => {
           e.preventDefault();
           column.classList.remove("drag-over");
-          if (!draggedTaskId || !auth.currentUser) return;
+          console.log("Drop Event - Dragged Task ID:", draggedTaskId); // Debugging
+          if (!draggedTaskId || !auth.currentUser) {
+            console.error("Drop failed - No draggedTaskId or user logged out");
+            draggedTaskId = null; // Reset if drop fails
+            return;
+          }
 
           const newStatus = column.dataset.status;
           const draggedCard = document.querySelector(`[data-id="${draggedTaskId}"]`);
 
-          column.appendChild(draggedCard);
+          // Optional safety check
+          if (!draggedCard) {
+            console.error("Could not find dragged card element for ID:", draggedTaskId);
+            draggedTaskId = null; // Reset if card not found
+            return;
+          }
+
+          column.appendChild(draggedCard); // Optimistic UI Update
+
+          const currentDraggedId = draggedTaskId; // Store it before resetting
+          draggedTaskId = null; // Reset global variable immediately after drop
 
           try {
             const headers = await getAuthHeaders();
-            await fetch(`${API_URL}/${draggedTaskId}`, {
+            console.log(`Sending PUT to ${API_URL}/${currentDraggedId} with status ${newStatus}`); // Debugging
+            await fetch(`${API_URL}/${currentDraggedId}`, {
+              // Use the stored ID
               method: "PUT",
               headers: headers,
               body: JSON.stringify({ status: newStatus }),
@@ -347,7 +385,7 @@ window.addEventListener("DOMContentLoaded", () => {
             fetchAllTasks();
           } catch (error) {
             console.error("Error updating task status:", error);
-            fetchAllTasks();
+            fetchAllTasks(); // Revert on error
           }
         });
       });
@@ -373,7 +411,7 @@ window.addEventListener("DOMContentLoaded", () => {
         e.target.className = `select-${e.target.value}`;
       });
       priorityInput.dispatchEvent(new Event("change"));
-    }
+    } // End of initializeAppLogic
   } else {
     console.error("Firebase Auth is not initialized. Check firebase-init.js");
   }
