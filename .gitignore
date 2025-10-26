@@ -8,3 +8,7 @@ npm-debug.log*
 /backend/.env
 
 /backend/serviceAccountKey.json
+
+/node_modules
+/package.json
+/package-lock.json
