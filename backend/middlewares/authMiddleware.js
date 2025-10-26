@@ -1,54 +1,72 @@
-import admin from 'firebase-admin';
+import dotenv from "dotenv";
+dotenv.config(); // Loads environment variables from .env file locally
 
-// Make sure you have the 'serviceAccountKey.json' in your /backend folder
-import serviceAccount from '../serviceAccountKey.json' with { type: "json" };
+import admin from "firebase-admin";
 
-// Safer Firebase Admin initialization
-// This ensures we always have a reference to the app
+const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (!serviceAccountString) {
+  // This error will now show up clearly in Vercel logs if the variable is missing
+  console.error("CRITICAL ERROR: FIREBASE_SERVICE_ACCOUNT environment variable is not set or empty.");
+  throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
+}
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(serviceAccountString);
+} catch (e) {
+  console.error("CRITICAL ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT JSON.");
+  console.error("Ensure the environment variable value is the complete, valid JSON content.");
+  throw new Error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON.");
+}
+// --- END OF FIX ---
+
+// Firebase Admin initialization
 let firebaseApp;
 if (!admin.apps.length) {
+  try {
     firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      credential: admin.credential.cert(serviceAccount),
     });
+    console.log("Firebase Admin initialized successfully."); // Add success log
+  } catch (initError) {
+    console.error("CRITICAL ERROR: Firebase Admin initialization failed.");
+    console.error(initError);
+    throw new Error("Firebase Admin initialization failed.");
+  }
 } else {
-    firebaseApp = admin.app(); // Get the default app if already initialized
+  firebaseApp = admin.app();
+  console.log("Firebase Admin already initialized."); // Add log
 }
 
 /**
  * This middleware verifies the Firebase auth token.
  */
 const authMiddleware = async (req, res, next) => {
-    const header = req.headers.authorization;
+  // Add a log to see if middleware is even running
+  console.log("Auth middleware executing...");
 
-    if (!header || !header.startsWith('Bearer ')) {
-        return res.status(401).json({ message: 'No token, authorization denied' });
-    }
+  const header = req.headers.authorization;
 
-    const token = header.split(' ')[1];
+  if (!header || !header.startsWith("Bearer ")) {
+    console.log("Auth middleware: No token provided.");
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
 
-    try {
-        const decodedToken = await admin.auth(firebaseApp).verifyIdToken(token);
-        req.userId = decodedToken.uid; // Add user ID to the request object
-        next();
-    } catch (error) {
-        // --- THIS IS THE NEW, SAFER LOGGING ---
-        console.error("--- AUTHENTICATION FAILED (INSIDE CATCH BLOCK) ---");
-        console.error("Token from frontend was REJECTED.");
-        console.error("This almost certainly means your backend 'serviceAccountKey.json' does not match your frontend 'firebaseConfig'.");
-        
-        // Safely get the Project ID
-        try {
-            console.error("Backend Project ID (from service key):", serviceAccount.project_id);
-        } catch (e) {
-            console.error("Could not read 'project_id' from serviceAccountKey.json.");
-        }
-        
-        console.error("Full Error Details:", error.code, error.message);
-        // --- END OF NEW LOGGING ---
+  const token = header.split(" ")[1];
 
-        res.status(400).json({ message: 'Token is not valid. See backend console for details.' });
-    }
+  try {
+    console.log("Auth middleware: Verifying token..."); // Add log
+    const decodedToken = await admin.auth(firebaseApp).verifyIdToken(token);
+    console.log("Auth middleware: Token verified successfully for UID:", decodedToken.uid); // Add log
+    req.userId = decodedToken.uid;
+    next();
+  } catch (error) {
+    console.error("--- AUTHENTICATION FAILED (INSIDE CATCH BLOCK) ---");
+    console.error("Token from frontend was REJECTED.");
+    console.error("Backend Project ID (from service key):", serviceAccount.project_id);
+    console.error("Full Error Details:", error.code, error.message);
+    res.status(400).json({ message: "Token is not valid. See backend console for details." });
+  }
 };
 
 export default authMiddleware;
-
