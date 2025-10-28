@@ -5,7 +5,6 @@ import admin from "firebase-admin";
 
 const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (!serviceAccountString) {
-  // This error will now show up clearly in Vercel logs if the variable is missing
   console.error("CRITICAL ERROR: FIREBASE_SERVICE_ACCOUNT environment variable is not set or empty.");
   throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
 }
@@ -18,7 +17,6 @@ try {
   console.error("Ensure the environment variable value is the complete, valid JSON content.");
   throw new Error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON.");
 }
-// --- END OF FIX ---
 
 // Firebase Admin initialization
 let firebaseApp;
