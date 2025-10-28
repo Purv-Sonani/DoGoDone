@@ -6,12 +6,6 @@ A **full-stack Kanban board** for personal task management.
 
 Built with modern web technologies to provide a **secure**, **responsive**, and **intuitive** experience.  
 
-<p align="center">
-  <a href="https://do-go-done.vercel.app/" target="_blank">
-    <img src="https://vercel.com/button" alt="Deploy with Vercel"/>
-  </a>
-</p>
-
 **Live Demo:** 👉 [https://do-go-done.vercel.app/](https://do-go-done.vercel.app/)
 
 </div>
