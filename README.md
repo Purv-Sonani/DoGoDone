@@ -11,7 +11,7 @@ A full-stack, single-page web application designed for personal task management 
 </p>
 
 <p align="center">
-Live Demo: <a href="https://do-go-done.vercel.app/" target="_blank">https://do-go-done.vercel.app/</a>
+<strong>Live Demo:</strong> <a href="https://do-go-done.vercel.app/" target="_blank">https://do-go-done.vercel.app/</a>
 </p>
 
 ✨ Features
@@ -56,11 +56,17 @@ Firebase Admin SDK (for backend token verification)
 
 dotenv (for managing environment variables locally)
 
-Authentication: Firebase Authentication (Email/Password)
+Authentication:
 
-Database: MongoDB Atlas (Cloud-hosted)
+Firebase Authentication (Email/Password)
 
-Deployment: Vercel
+Database:
+
+MongoDB Atlas (Cloud-hosted)
+
+Deployment:
+
+Vercel
 
 📸 Screenshots
 
@@ -68,7 +74,28 @@ Deployment: Vercel
 
 📁 Folder Structure
 
-DoGoDone/ ├── backend/ │ ├── models/ │ │ └── task.model.js # Mongoose schema for tasks │ ├── routes/ │ │ └── tasks.js # API route handlers for tasks │ ├── authMiddleware.js # Firebase token verification │ ├── server.js # Express server setup │ ├── serviceAccountKey.json # Firebase Admin credentials (local, gitignored) │ ├── .env # Environment variables (local, gitignored) │ └── package.json # Backend dependencies ├── public/ │ ├── images/ │ │ └── favicon_io/ # Favicon files │ ├── index.html # Main HTML file (SPA) │ ├── style.css # All CSS styles │ ├── app.js # Frontend JavaScript logic │ └── firebase-init.js # Firebase client-side config ├── .gitignore # Specifies intentionally untracked files ├── README.md # Project description (this file) └── vercel.json # Vercel deployment configuration
+DoGoDone/
+├── backend/
+│   ├── models/
+│   │   └── task.model.js       # Mongoose schema for tasks
+│   ├── routes/
+│   │   └── tasks.js            # API route handlers for tasks
+│   ├── authMiddleware.js     # Firebase token verification
+│   ├── server.js             # Express server setup
+│   ├── serviceAccountKey.json  # Firebase Admin credentials (local, gitignored)
+│   ├── .env                  # Environment variables (local, gitignored)
+│   └── package.json          # Backend dependencies
+├── public/
+│   ├── images/
+│   │   └── favicon_io/       # Favicon files
+│   ├── index.html            # Main HTML file (SPA)
+│   ├── style.css             # All CSS styles
+│   ├── app.js                # Frontend JavaScript logic
+│   └── firebase-init.js      # Firebase client-side config
+├── .gitignore                # Specifies intentionally untracked files
+├── README.md                 # Project description (this file)
+└── vercel.json               # Vercel deployment configuration
+
 
 🚀 Getting Started Locally
 
@@ -76,7 +103,9 @@ To run this project on your local machine:
 
 Clone the repository:
 
-git clone <YOUR_REPOSITORY_URL> cd DoGoDone
+git clone <YOUR_REPOSITORY_URL>
+cd DoGoDone
+
 
 Backend Setup:
 
@@ -84,15 +113,18 @@ Navigate to the backend directory:
 
 cd backend
 
+
 Install dependencies:
 
 npm install
 
+
 Create a .env file in the backend directory. Populate it with your credentials:
 
 # backend/.env
+MONGODB_URI="mongodb+srv://<USERNAME>:<PASSWORD>@<YOUR_CLUSTER_URI>/DoGoDoneDB?retryWrites=true&w=majority"
+FIREBASE_SERVICE_ACCOUNT="{ ... paste the entire content of your serviceAccountKey.json file here ... }"
 
-MONGODB_URI="mongodb+srv://<USERNAME>:<PASSWORD>@<YOUR_CLUSTER_URI>/DoGoDoneDB?retryWrites=true&w=majority" FIREBASE_SERVICE_ACCOUNT="{ ... paste the entire content of your serviceAccountKey.json file here ... }"
 
 (Note: Get serviceAccountKey.json from your Firebase Project Settings -> Service accounts)
 
@@ -102,6 +134,7 @@ Start the backend server:
 
 npm start
 
+
 The server will run on http://localhost:5001.
 
 Frontend Setup:
@@ -110,11 +143,22 @@ No build step is required for the frontend.
 
 Create a firebase-init.js file in the public directory (if you haven't already). Add your Firebase client-side configuration:
 
-// public/firebase-init.js import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)"; import { getAuth } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js)";
+// public/firebase-init.js
+import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)";
+import { getAuth } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js)";
 
-// Replace with your actual Firebase config object const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "...", // ... etc };
+// Replace with your actual Firebase config object
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  // ... etc
+};
 
-const app = initializeApp(firebaseConfig); window.firebaseApp = app; window.firebaseAuth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+window.firebaseApp = app;
+window.firebaseAuth = getAuth(app);
+
 
 Open the public/index.html file using a live server extension (like VS Code's "Live Server") to handle API requests correctly and avoid CORS issues.
 
