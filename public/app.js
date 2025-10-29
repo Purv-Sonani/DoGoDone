@@ -1,12 +1,12 @@
-// --- 1. IMPORT FIREBASE FUNCTIONS ---
+// --- IMPORT FIREBASE FUNCTIONS ---
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// --- THIS IS THE FIX: Wait for the page to load ---
+// --- Wait for the page to load ---
 window.addEventListener("DOMContentLoaded", () => {
   // Now it's safe to get the auth object
   const auth = window.firebaseAuth;
 
-  // --- 2. GET ALL HTML ELEMENTS ---
+  // --- GET ALL HTML ELEMENTS ---
   const API_URL = "/api/tasks";
   let currentUserId = null;
 
@@ -26,7 +26,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const signupToggleText = showLoginBtn.closest(".auth-toggle");
 
   // Main app form
-  // We get these *inside* the init function
   let addTaskForm, titleInput, descriptionInput, priorityInput, addTaskBtn;
   let todoList, inProgressList, doneList, taskLists;
   let todoCount, inProgressCount, doneCount;
@@ -35,7 +34,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Drag & Drop state
   let draggedTaskId = null;
 
-  // --- 3. HELPER FUNCTIONS ---
+  // --- HELPER FUNCTIONS ---
 
   /**
    * Gets a fresh auth token and returns headers for an API call.
@@ -151,7 +150,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- 4. AUTHENTICATION & APP LOGIC ---
+  // --- AUTHENTICATION & APP LOGIC ---
   if (auth) {
     /**
      * Main listener for authentication state
@@ -166,7 +165,7 @@ window.addEventListener("DOMContentLoaded", () => {
         authContainer.style.display = "none";
         appContainer.style.display = "block";
 
-        initializeAppLogic(); // Initialize listeners only after login
+        initializeAppLogic();
 
         fetchAllTasks();
       } else {
@@ -175,11 +174,10 @@ window.addEventListener("DOMContentLoaded", () => {
         appContainer.style.display = "none";
         authContainer.style.display = "flex";
         currentUserId = null;
-        // Remove listeners if needed, though usually just hiding the app is enough
       }
     });
 
-    // Auth form toggling logic (This is safe to run here)
+    // Auth form toggling logic
     showSignupBtn.addEventListener("click", (e) => {
       e.preventDefault();
       loginForm.style.display = "none";
@@ -197,7 +195,7 @@ window.addEventListener("DOMContentLoaded", () => {
       authError.style.display = "none";
     });
 
-    // Login form submit (Safe to run here)
+    // Login form submit
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("login-email").value;
@@ -212,7 +210,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Sign Up form submit (Safe to run here)
+    // Sign Up form submit
     signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("signup-email").value;
@@ -227,12 +225,12 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Logout button click (Safe to run here)
+    // Logout button click
     logoutButton.addEventListener("click", () => {
       signOut(auth);
     });
 
-    // --- 5. FUNCTION TO SET UP ALL APP EVENT LISTENERS ---
+    // --- FUNCTION TO SET UP ALL APP EVENT LISTENERS ---
     function initializeAppLogic() {
       // Get app elements *after* DOM is ready and user is logged in
       addTaskForm = document.getElementById("add-task-form-helper");
@@ -253,7 +251,7 @@ window.addEventListener("DOMContentLoaded", () => {
       searchBar = document.getElementById("search-bar");
       lastSaved = document.getElementById("last-saved");
 
-      // --- 7. EVENT LISTENER: HANDLE NEW TASK FORM SUBMIT ---
+      // --- EVENT LISTENER: HANDLE NEW TASK FORM SUBMIT ---
       addTaskBtn.addEventListener("click", async () => {
         const title = titleInput.value.trim();
         const description = descriptionInput.value.trim();
@@ -279,7 +277,7 @@ window.addEventListener("DOMContentLoaded", () => {
       });
       addTaskForm.addEventListener("submit", (e) => e.preventDefault());
 
-      // --- 8. EVENT LISTENER: HANDLE BUTTON CLICKS (MOVE & DELETE) ---
+      // --- EVENT LISTENER: HANDLE BUTTON CLICKS (MOVE & DELETE) ---
       appContainer.addEventListener("click", async (e) => {
         if (!e.target.matches(".delete-btn") && !e.target.matches(".move-btn")) {
           return;
@@ -289,21 +287,18 @@ window.addEventListener("DOMContentLoaded", () => {
         const button = e.target;
         const action = button.dataset.action;
         const taskCard = button.closest(".task-card");
-        const taskId = taskCard?.dataset.id; // Use optional chaining just in case
+        const taskId = taskCard?.dataset.id;
 
-        // --- DEBUGGING ---
         console.log("Button clicked!", { action, taskId });
         if (!taskId) {
           console.error("Could not find taskId from taskCard:", taskCard);
           return; // Stop if taskId is null or undefined
         }
-        // --- END DEBUGGING ---
 
         try {
           if (action === "delete") {
             const headers = await getAuthHeaders();
             await fetch(`${API_URL}/${taskId}`, {
-              // Use taskId here
               method: "DELETE",
               headers: { Authorization: headers.Authorization },
             });
@@ -311,7 +306,6 @@ window.addEventListener("DOMContentLoaded", () => {
             const newStatus = action;
             const headers = await getAuthHeaders();
             await fetch(`${API_URL}/${taskId}`, {
-              // Use taskId here
               method: "PUT",
               headers: headers,
               body: JSON.stringify({ status: newStatus }),
@@ -323,19 +317,18 @@ window.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // --- 10. DRAG AND DROP EVENT LISTENERS ---
+      //DRAG AND DROP EVENT LISTENERS ---
       taskLists.forEach((list) => {
         list.addEventListener("dragstart", (e) => {
           if (e.target.matches(".task-card")) {
             draggedTaskId = e.target.dataset.id;
-            console.log("Drag Start - Task ID:", draggedTaskId); // Debugging
+            console.log("Drag Start - Task ID:", draggedTaskId);
             setTimeout(() => e.target.classList.add("dragging"), 0);
           }
         });
         list.addEventListener("dragend", (e) => {
           if (e.target.matches(".task-card")) {
-            console.log("Drag End - Task ID:", draggedTaskId); // Debugging
-            // draggedTaskId = null; // Let's keep it until drop for debugging
+            console.log("Drag End - Task ID:", draggedTaskId);
             e.target.classList.remove("dragging");
           }
         });
@@ -361,14 +354,13 @@ window.addEventListener("DOMContentLoaded", () => {
           const newStatus = column.dataset.status;
           const draggedCard = document.querySelector(`[data-id="${draggedTaskId}"]`);
 
-          // Optional safety check
           if (!draggedCard) {
             console.error("Could not find dragged card element for ID:", draggedTaskId);
             draggedTaskId = null; // Reset if card not found
             return;
           }
 
-          column.appendChild(draggedCard); // Optimistic UI Update
+          column.appendChild(draggedCard);
 
           const currentDraggedId = draggedTaskId; // Store it before resetting
           draggedTaskId = null; // Reset global variable immediately after drop
@@ -390,7 +382,7 @@ window.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      // --- 9. EVENT LISTENER: HANDLE SEARCH ---
+      // --- EVENT LISTENER: HANDLE SEARCH ---
       searchBar.addEventListener("input", (e) => {
         const searchTerm = e.target.value.toLowerCase();
 
@@ -406,7 +398,7 @@ window.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      // --- 11. STYLE THE PRIORITY DROPDOWN ON CHANGE ---
+      // --- STYLE THE PRIORITY DROPDOWN ON CHANGE ---
       priorityInput.addEventListener("change", (e) => {
         e.target.className = `select-${e.target.value}`;
       });
@@ -415,4 +407,4 @@ window.addEventListener("DOMContentLoaded", () => {
   } else {
     console.error("Firebase Auth is not initialized. Check firebase-init.js");
   }
-}); // <-- THIS IS THE CLOSING BRACKET for 'DOMContentLoaded'
+});
