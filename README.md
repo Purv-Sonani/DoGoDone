@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🧩 DoGoDone - Kanban Task Management Board  
+# 🧩 DoGoDone - Kanban Task Management Board
 
-A **full-stack Kanban board** for personal task management.  
+A **full-stack Kanban board** for personal task management.
 
-Built with modern web technologies to provide a **secure**, **responsive**, and **intuitive** experience.  
+Built with modern web technologies to provide a **secure**, **responsive**, and **intuitive** experience.
 
 **Live Demo:** 👉 [https://do-go-done.vercel.app/](https://do-go-done.vercel.app/)
 
@@ -17,13 +17,7 @@ Built with modern web technologies to provide a **secure**, **responsive**, and 
 - [Overview](#overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
-- [Screenshots](#screenshots)
 - [Folder Structure](#folder-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Firebase Setup](#firebase-setup-local)
-- [Deployment](#deployment)
 
 ---
 
@@ -34,13 +28,13 @@ It allows users to create accounts, manage their tasks across different stages, 
 
 ### Why DoGoDone?
 
-- 🔐 **Secure & Private:** Firebase Authentication ensures each user’s data is accessible only to them.  
-- 🔄 **Full CRUD Functionality:** Create, read, update, and delete tasks easily.  
-- 🎨 **Visual Workflow:** Organize tasks in “To Do”, “In Progress”, and “Done” columns.  
-- 🖐️ **Intuitive Interaction:** Drag-and-drop or button-based status updates.  
-- 🚦 **Prioritization:** Assign **High**, **Medium**, or **Low** priorities with color-coded cards.  
-- 🔍 **Filtering:** Real-time search by title or description.  
-- 📱 **Responsive Design:** Optimized for all screen sizes.  
+- 🔐 **Secure & Private:** Firebase Authentication ensures each user’s data is accessible only to them.
+- 🔄 **Full CRUD Functionality:** Create, read, update, and delete tasks easily.
+- 🎨 **Visual Workflow:** Organize tasks in “To Do”, “In Progress”, and “Done” columns.
+- 🖐️ **Intuitive Interaction:** Drag-and-drop or button-based status updates.
+- 🚦 **Prioritization:** Assign **High**, **Medium**, or **Low** priorities with color-coded cards.
+- 🔍 **Filtering:** Real-time search by title or description.
+- 📱 **Responsive Design:** Optimized for all screen sizes.
 - 💾 **Persistent Data:** Tasks stored securely in **MongoDB Atlas**.
 
 ---
@@ -54,32 +48,37 @@ It allows users to create accounts, manage their tasks across different stages, 
 ✅ Priority levels (High, Medium, Low)  
 ✅ Live search filtering  
 ✅ Responsive UI  
-✅ Persistent cloud storage  
+✅ Persistent cloud storage
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### **Frontend**
-- HTML5  
-- CSS3 (CSS Variables)  
-- Vanilla JavaScript (ES Modules)  
+
+- HTML5
+- CSS3 (CSS Variables)
+- Vanilla JavaScript (ES Modules)
 - Firebase JS SDK (v11.6.1 for Authentication)
 
 ### **Backend**
-- Node.js (v22.x recommended)  
-- Express.js  
-- MongoDB (with Mongoose ODM)  
-- Firebase Admin SDK (token verification)  
+
+- Node.js (v22.x recommended)
+- Express.js
+- MongoDB (with Mongoose ODM)
+- Firebase Admin SDK (token verification)
 - dotenv (for environment variables)
 
 ### **Authentication**
+
 - Firebase Authentication (Email/Password)
 
 ### **Database**
+
 - MongoDB Atlas (Cloud-hosted)
 
 ### **Deployment**
+
 - Vercel
 
 ---
@@ -110,3 +109,4 @@ DoGoDone/
 ├── .gitignore                      # Untracked files
 ├── README.md                       # Project documentation
 └── vercel.json                     # Vercel deployment config
+```
